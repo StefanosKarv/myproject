@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Motherboard Comparison System</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.0.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body, html {
+        height: 100%;
+        background-color: #464549;
+        margin: 0;
+      }
+      .container {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        background-color: #464549;
+        color: #ffffff;
+        padding: 20px 0;
+        text-align: center;
+      }
+      .footer {
+        background-color: #1d2e21;
+        color: #ffffff;
+        padding: 10px 0;
+        text-align: center;
+      }
+      h1 {
+        font-size: 3rem;
+        color: #ffffff;
+      }
+      img {
+        transition: transform 0.5s ease;
+        max-width: 100%;
+        height: auto;
+      }
+      img:hover {
+        transform: scale(1.05);
+      }
+      .btn-custom {
+        background-color: #1d2e21;
+        color: #ffffff;
+        border: none;
+      }
+      .btn-custom:hover {
+        background-color: #2a3a29;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.onload = function () {
+        var alertPlaceholder = document.getElementById("alert-placeholder");
+        var alert =
+          '<div class="alert alert-warning alert-dismissible fade show" role="alert">' +
+          "   Select motherboards to start comparing!" +
+          '   <button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
+          '       <span aria-hidden="true">&times;</span>' +
+          "   </button>" +
+          "</div>";
+        alertPlaceholder.innerHTML = alert;
+        setTimeout(function () {
+          var alertElement = document.querySelector(".alert");
+          if (alertElement) {
+            alertElement.parentNode.removeChild(alertElement);
+          }
+        }, 5000);
+      };
+    </script>
+
+    <div class="container d-flex flex-column">
+      <header class="header">
+        <h2>Department of Informatics and Telecommunications <br /> University of Ioannina</h2>
+      </header>
+      <button
+                type="button"
+                class="btn btn-custom btn-lg"
+                onclick="window.location.href = 'index.html'"
+              >
+                Home
+              </button>
+      <br />
+      <center><h1>Motherboard Comparison System</h1><br /></center>
+      
+      <div class="row mb-3">
+        <div class="col">
+          <select id="motherboardSelect1" class="form-control"></select>
+        </div>
+        <div class="col">
+          <select id="motherboardSelect2" class="form-control"></select>
+        </div>
+        <div class="col-auto">
+          <button id="compareBtn" class="btn btn-custom">Compare</button>
+        </div>
+      </div>
+      <div id="alert-placeholder"></div>
+
+      <div class="row">
+        <canvas id="comparisonChart"></canvas>
+      </div>
+      <br />
+      <footer class="footer mt-auto">
+        Development: Karvounis Stefanos (2024)
+      </footer>
+    </div>
+
+    <script>
+      let motherboards = [];
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        const motherboardSelect1 = document.getElementById("motherboardSelect1");
+        const motherboardSelect2 = document.getElementById("motherboardSelect2");
+        const compareBtn = document.getElementById("compareBtn");
+
+        try {
+          const response = await fetch('/get-mobos');
+          motherboards = await response.json();
+          console.log(motherboards);
+
+          motherboardSelect1.innerHTML = '<option value="">-- Select Motherboard --</option>';
+          motherboardSelect2.innerHTML = '<option value="">-- Select Motherboard --</option>';
+
+          if (motherboards.length > 0) {
+            motherboards.forEach(motherboard => {
+              const option1 = document.createElement('option');
+              option1.value = motherboard.name;
+              option1.textContent = `${motherboard.name} - ${motherboard.socket}`;
+              motherboardSelect1.appendChild(option1);
+
+              const option2 = document.createElement('option');
+              option2.value = motherboard.name;
+              option2.textContent = `${motherboard.name} - ${motherboard.socket}`;
+              motherboardSelect2.appendChild(option2);
+            });
+          } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No motherboards available';
+            motherboardSelect1.appendChild(option);
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+
+        compareBtn.addEventListener("click", function () {
+          const selectedMotherboard1 = motherboardSelect1.value;
+          const selectedMotherboard2 = motherboardSelect2.value;
+
+          if (!selectedMotherboard1 || !selectedMotherboard2) {
+            alert("Please select two motherboards for comparison.");
+            return;
+          }
+
+          const motherboard1Data = motherboards.find((motherboard) => motherboard.name === selectedMotherboard1);
+          const motherboard2Data = motherboards.find((motherboard) => motherboard.name === selectedMotherboard2);
+
+          const features = ["price", "ramslots", "rating"];
+          const motherboard1Features = features.map((feature) => parseFloat(motherboard1Data[feature]));
+          const motherboard2Features = features.map((feature) => parseFloat(motherboard2Data[feature]));
+
+          const ctx = document.getElementById("comparisonChart").getContext("2d");
+          if (window.bar !== undefined) {
+            window.bar.destroy();
+          }
+
+          window.bar = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: features,
+              datasets: [
+                {
+                  label: selectedMotherboard1,
+                  data: motherboard1Features,
+                  backgroundColor: "rgba(54, 162, 235, 0.5)",
+                },
+                {
+                  label: selectedMotherboard2,
+                  data: motherboard2Features,
+                  backgroundColor: "rgba(255, 99, 132, 0.5)",
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y", 
+              plugins: {
+                legend: {
+                  labels: {
+                    font: {
+                      size: 16,
+                    },
+                    color: "#ffffff",
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  ticks: {
+                    font: {
+                      size: 16,
+                    },
+                    color: "#ffffff",
+                  },
+                },
+                y: {
+                  ticks: {
+                    font: {
+                      size: 16,
+                    },
+                    color: "#ffffff",
+                  },
+                },
+              },
+            },
+          });
+        });
+      });
+    </script>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>GPU Comparison System</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.0.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body, html {
+        height: 100%;
+        background-color: #464549;
+        margin: 0;
+      }
+      .container {
+        min-height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        background-color: #464549;
+        color: #ffffff;
+        padding: 20px 0;
+        text-align: center;
+      }
+      .footer {
+        background-color: #1d2e21;
+        color: #ffffff;
+        padding: 10px 0;
+        text-align: center;
+      }
+      h1 {
+        font-size: 3rem;
+        color: #ffffff;
+      }
+      img {
+        transition: transform 0.5s ease;
+        max-width: 100%;
+        height: auto;
+      }
+      img:hover {
+        transform: scale(1.05);
+      }
+      .btn-custom {
+        background-color: #1d2e21;
+        color: #ffffff;
+        border: none;
+      }
+      .btn-custom:hover {
+        background-color: #2a3a29;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      window.onload = function () {
+        var alertPlaceholder = document.getElementById("alert-placeholder");
+        var alert =
+          '<div class="alert alert-warning alert-dismissible fade show" role="alert">' +
+          "   Select GPUs to start comparing!" +
+          '   <button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
+          '       <span aria-hidden="true">&times;</span>' +
+          "   </button>" +
+          "</div>";
+        alertPlaceholder.innerHTML = alert;
+        setTimeout(function () {
+          var alertElement = document.querySelector(".alert");
+          if (alertElement) {
+            alertElement.parentNode.removeChild(alertElement);
+          }
+        }, 5000);
+      };
+    </script>
+
+    <div class="container d-flex flex-column">
+      <header class="header">
+        <h2>Department of Informatics and Telecommunications <br /> University of Ioannina</h2>
+      </header>
+      <button
+                type="button"
+                class="btn btn-custom btn-lg"
+                onclick="window.location.href = 'index.html'"
+              >
+                Home
+              </button>
+      <br />
+      <center><h1>GPU Comparison System</h1><br /></center>
+      
+      <div class="row mb-3">
+        <div class="col">
+          <select id="gpuSelect1" class="form-control"></select>
+        </div>
+        <div class="col">
+          <select id="gpuSelect2" class="form-control"></select>
+        </div>
+        <div class="col-auto">
+          <button id="compareBtn" class="btn btn-custom">Compare</button>
+        </div>
+      </div>
+      <div id="alert-placeholder"></div>
+
+      <div class="row">
+        <canvas id="comparisonChart"></canvas>
+      </div>
+      <br />
+      <footer class="footer mt-auto">
+        Development: Karvounis Stefanos (2024)
+      </footer>
+    </div>
+
+    <script>
+      let gpus = [];
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        const gpuSelect1 = document.getElementById("gpuSelect1");
+        const gpuSelect2 = document.getElementById("gpuSelect2");
+        const compareBtn = document.getElementById("compareBtn");
+
+        try {
+          const response = await fetch('/get-gpus');
+          gpus = await response.json();
+          console.log(gpus);
+
+          gpuSelect1.innerHTML = '<option value="">-- Select GPU --</option>';
+          gpuSelect2.innerHTML = '<option value="">-- Select GPU --</option>';
+
+          if (gpus.length > 0) {
+            gpus.forEach(gpu => {
+              const option1 = document.createElement('option');
+              option1.value = gpu.name;
+              option1.textContent = `${gpu.name} - $${gpu.price}`;
+              gpuSelect1.appendChild(option1);
+
+              const option2 = document.createElement('option');
+              option2.value = gpu.name;
+              option2.textContent = `${gpu.name} - $${gpu.price}`;
+              gpuSelect2.appendChild(option2);
+            });
+          } else {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No GPUs available';
+            gpuSelect1.appendChild(option);
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
+        }
+
+        compareBtn.addEventListener("click", function () {
+          const selectedGpu1 = gpuSelect1.value;
+          const selectedGpu2 = gpuSelect2.value;
+
+          const gpu1Data = gpus.find((gpu) => gpu.name === selectedGpu1);
+          const gpu2Data = gpus.find((gpu) => gpu.name === selectedGpu2);
+
+          const features = ["price", "clock", "vram", "rating"];
+          const gpu1Features = features.map((feature) => parseFloat(gpu1Data[feature]));
+          const gpu2Features = features.map((feature) => parseFloat(gpu2Data[feature]));
+
+          const ctx = document.getElementById("comparisonChart").getContext("2d");
+          if (window.bar !== undefined) {
+            window.bar.destroy();
+          }
+
+          window.bar = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: features,
+              datasets: [
+                {
+                  label: selectedGpu1,
+                  data: gpu1Features,
+                  backgroundColor: "rgba(54, 162, 235, 0.5)",
+                },
+                {
+                  label: selectedGpu2,
+                  data: gpu2Features,
+                  backgroundColor: "rgba(255, 99, 132, 0.5)",
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y",
+            },
+          });
+        });
+      });
+    </script>
+    
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
